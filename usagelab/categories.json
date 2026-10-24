@@ -1,0 +1,12 @@
+[
+  {"name": "数模/国赛", "keywords": ["数学建模", "数学模型", "mathmodel", "国赛", "2026B"]},
+  {"name": "综测", "keywords": ["综测", "奖学金", "综合测评"]},
+  {"name": "PPT/演示", "keywords": ["ppt", "PPT", "演示", "幻灯"]},
+  {"name": "数据库", "keywords": ["mysql", "MySQL", "数据库", "实验一"]},
+  {"name": "Servlet/Web", "keywords": ["servlet", "Servlet", "web", "Web", "实验2", "实验3"]},
+  {"name": "离散数学", "keywords": ["离散"]},
+  {"name": "概率论", "keywords": ["概率"]},
+  {"name": "数据结构", "keywords": ["数据结构", "栈和队列"]},
+  {"name": "AI漫剧", "keywords": ["漫剧", "动漫"]},
+  {"name": "Harness/Agent", "keywords": ["harness", "Harness", "agent", "Agent"]}
+]
