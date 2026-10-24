@@ -75,6 +75,77 @@ def save_snapshot(data: dict, history_dir: str) -> str:
     return path
 
 
+# ---------- 快照对比 ----------
+
+def list_snapshots(history_dir: str) -> list[str]:
+    """按时间序返回快照文件路径（文件名即时间戳，字典序=时间序）。"""
+    if not os.path.isdir(history_dir):
+        return []
+    names = sorted(n for n in os.listdir(history_dir)
+                   if n.startswith("snapshot_") and n.endswith(".json"))
+    return [os.path.join(history_dir, n) for n in names]
+
+
+# 参与 diff 的核心指标：(快照键, 显示名, 单位, 质量指标?)
+# 质量指标（True）越小越好、参与 🟢/🔴 判定；工作量指标（False）只是
+# 上下文（多干或少干一小时无所谓好坏），不判定方向
+DIFF_METRICS = [
+    ("p90_ms", "P90 等待", "ms", True),
+    ("p50_ms", "P50 等待", "ms", True),
+    ("ttft_p50_ms", "首token中位", "ms", True),
+    ("giant_share_pct", "巨型会话占比", "%", True),
+    ("signal_weighted_total", "不满加权分", "count", True),
+    ("cancelled", "取消轮数", "count", False),
+    ("total_min", "累计分钟", "min", False),
+    ("n_turns", "完成轮数", "count", False),
+]
+
+
+def _fmt_metric(value, unit):
+    if value is None:
+        return "—"
+    if unit == "ms":
+        return f"{value/1000:.0f}s" if value < 120000 else f"{value/60000:.1f}min"
+    if unit == "min":
+        return f"{value:.0f}min"
+    if unit == "%":
+        return f"{value:.1f}%"
+    return str(value)
+
+
+def diff_snapshots(old: dict, new: dict) -> list[dict]:
+    """两个快照的核心指标对比（纯函数，供 CLI 与测试共用）。
+
+    返回行：{name, old, new, delta, better}——better 仅对质量指标判定
+    （True=变好/False=变差），工作量指标恒为 None；delta 为 None 表示
+    任一侧缺数据无法比较。"""
+    rows = []
+    for key, label, unit, is_quality in DIFF_METRICS:
+        ov, nv = old.get(key), new.get(key)
+        if isinstance(ov, (int, float)) and isinstance(nv, (int, float)):
+            delta = nv - ov
+        else:
+            delta = None
+        better = None
+        if is_quality and delta is not None and delta != 0:
+            better = delta < 0  # 质量指标：降=变好
+        rows.append({
+            "name": label, "old": _fmt_metric(ov, unit),
+            "new": _fmt_metric(nv, unit), "delta": delta,
+            "delta_str": _fmt_delta(delta), "better": better,
+        })
+    return rows
+
+
+def _fmt_delta(delta):
+    if delta is None:
+        return "—"
+    if delta == 0:
+        return "持平"
+    sign = "+" if delta > 0 else ""
+    return f"{sign}{delta:.0f}" if isinstance(delta, (int, float)) else str(delta)
+
+
 # ---------- markdown 渲染 ----------
 
 def _sec(ms):

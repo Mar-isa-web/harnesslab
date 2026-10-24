@@ -146,6 +146,28 @@ def main():
     check("快照含核心指标", snap_data["n_turns"] == 7 and snap_data["p90_ms"] == 90_000,
           str(snap_data))
 
+    print("[组11] 快照对比 diff")
+    from usagelab.report import diff_snapshots, list_snapshots
+    old = {"p90_ms": 120_000, "p50_ms": 60_000, "cancelled": 10,
+           "signal_weighted_total": 50, "giant_share_pct": 80.0,
+           "n_turns": 100, "total_min": 500.0, "ttft_p50_ms": 8_000}
+    new = {"p90_ms": 90_000, "p50_ms": 60_000, "cancelled": 10,
+           "signal_weighted_total": 25, "giant_share_pct": 75.0,
+           "n_turns": 80, "total_min": 400.0, "ttft_p50_ms": 7_000}
+    rows = {r["name"]: r for r in diff_snapshots(old, new)}
+    check("P90 120s→90s 判定变好", rows["P90 等待"]["delta"] == -30_000
+          and rows["P90 等待"]["better"] is True)
+    check("加权分 50→25 判定变好", rows["不满加权分"]["better"] is True)
+    check("P50 持平 delta=0 better=None",
+          rows["P50 等待"]["delta"] == 0 and rows["P50 等待"]["better"] is None)
+    check("轮数/分钟等工作量指标不着色",
+          rows["完成轮数"]["better"] is None and rows["累计分钟"]["better"] is None)
+    partial = {"p90_ms": 90_000}  # 缺字段的快照
+    rows2 = {r["name"]: r for r in diff_snapshots(partial, new)}
+    check("缺数据一侧显示 — 且不崩", rows2["不满加权分"]["old"] == "—")
+    snaps = list_snapshots(os.path.join(tmp, "hist"))
+    check("快照目录列出 1 份", len(snaps) == 1, str(snaps))
+
     con.close()
     shutil.rmtree(tmp, ignore_errors=True)
 

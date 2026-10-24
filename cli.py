@@ -13,11 +13,13 @@
   --out DIR     报告输出目录（默认 reports/）
 """
 import argparse
+import json
 import os
 import sys
 
 from usagelab import load, metrics, models, signals, weekly
-from usagelab.report import build_report, render_markdown, save_snapshot
+from usagelab.report import (build_report, render_markdown, save_snapshot,
+                             list_snapshots, diff_snapshots)
 from usagelab.report_html import render_html, make_charts
 
 
@@ -114,6 +116,35 @@ def cmd_signals(args):
     con.close()
 
 
+def cmd_diff(args):
+    """对比最近两次快照（每周复盘的核心动作）。"""
+    hist = os.path.join(os.path.dirname(os.path.abspath(__file__)), "history")
+    snaps = list_snapshots(hist)
+    if len(snaps) < 2:
+        print(f"快照不足 2 份（现有 {len(snaps)} 份）——先多跑几次 "
+              f"`python cli.py report`，每周一次即可积累。")
+        return
+    with open(snaps[-2], encoding="utf-8") as f:
+        old = json.load(f)
+    with open(snaps[-1], encoding="utf-8") as f:
+        new = json.load(f)
+    print(f"对比：{old['generated_at']}  →  {new['generated_at']}\n")
+    print(f"{'指标':<12}{'上次':>10}{'本次':>10}{'变化':>10}  趋势")
+    for r in diff_snapshots(old, new):
+        mark = "🟢 变好" if r["better"] else ("🔴 变差" if r["better"] is False else "")
+        print(f"{r['name']:<12}{r['old']:>10}{r['new']:>10}"
+              f"{r['delta_str']:>10}  {mark}")
+    if args.all:
+        print(f"\n全部快照（{len(snaps)} 份）：")
+        for p in snaps:
+            with open(p, encoding="utf-8") as f:
+                s = json.load(f)
+            p90 = s.get("p90_ms")
+            p90_s = f"{p90/1000:.0f}s" if p90 else "—"
+            print(f"  {s['generated_at']}  轮次 {s.get('n_turns')}  "
+                  f"P90 {p90_s}  加权分 {s.get('signal_weighted_total')}")
+
+
 def main():
     p = argparse.ArgumentParser(prog="usagelab",
                                 description="AI 协作使用观测系统")
@@ -142,6 +173,10 @@ def main():
     sp = sub.add_parser("signals", help="不满信号统计")
     common(sp)
     sp.set_defaults(func=cmd_signals)
+
+    sp = sub.add_parser("diff", help="对比最近两次快照（周度复盘）")
+    sp.add_argument("--all", action="store_true", help="附全部快照趋势列表")
+    sp.set_defaults(func=cmd_diff)
 
     args = p.parse_args()
     args.func(args)
