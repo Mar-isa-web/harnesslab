@@ -17,3 +17,5 @@ jobs:
         run: python tests/test_loop.py
       - name: 离线冒烟（mock provider 跑一个演示任务）
         run: python cli.py --provider mock "演示任务" --mode yolo
+      - name: 观测面板合成库断言测试（46 项）
+        run: python usagelab/tests/test_all.py
