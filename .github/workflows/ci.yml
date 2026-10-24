@@ -1,0 +1,19 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 离线端到端测试（主循环 / 权限拒绝 / 失败重试）
+        run: python tests/test_loop.py
+      - name: 离线冒烟（mock provider 跑一个演示任务）
+        run: python cli.py --provider mock "演示任务" --mode yolo

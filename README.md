@@ -1,5 +1,7 @@
 # HarnessLab
 
+[![CI](https://github.com/Mar-isa-web/harnesslab/actions/workflows/ci.yml/badge.svg)](https://github.com/Mar-isa-web/harnesslab/actions/workflows/ci.yml)
+
 > 带全链路埋点的迷你 Agent 运行时：主循环 + Provider 抽象 + 工具系统 + SQLite 遥测。
 > 在它身上做可量化的改造实验（重试策略/上下文压缩/双模型 A/B）与故障注入，产出数据化复盘报告。
 
