@@ -29,7 +29,11 @@ CREATE TABLE IF NOT EXISTS turn_usage(
   duration_ms INTEGER,
   input_tokens  INTEGER DEFAULT 0,
   output_tokens INTEGER DEFAULT 0,
+  reasoning_tokens INTEGER DEFAULT 0,        -- 推理型模型的思考 token（面板 token 构成用）
+  cache_read_input_tokens INTEGER DEFAULT 0, -- 服务端缓存命中
+  time_to_first_token_ms INTEGER,            -- 接流式后启用，非流式为 NULL
   tool_call_count      INTEGER DEFAULT 0,
+  tool_error_count     INTEGER DEFAULT 0,
   model_request_count  INTEGER DEFAULT 0,
   model_retry_count    INTEGER DEFAULT 0,
   cancelled_by_user  INTEGER DEFAULT 0,
@@ -37,6 +41,7 @@ CREATE TABLE IF NOT EXISTS turn_usage(
   retry_policy      TEXT,           -- immediate / exp-backoff（M2 A/B 分组标注）
   context_strategy  TEXT,           -- naive-truncate / sliding-window
   error_type   TEXT,
+  error_code   TEXT,
   error_message TEXT);
 
 CREATE TABLE IF NOT EXISTS model_usage(
@@ -88,9 +93,18 @@ class Telemetry:
     def _migrate(self):
         """轻量迁移：老库补齐新增列（CREATE IF NOT EXISTS 不会改已有表）。"""
         cols = {r[1] for r in self.con.execute("PRAGMA table_info(turn_usage)")}
-        for col in ("retry_policy", "context_strategy"):
+        for col, ddl in (
+            ("retry_policy", "TEXT"),
+            ("context_strategy", "TEXT"),
+            ("reasoning_tokens", "INTEGER DEFAULT 0"),
+            ("cache_read_input_tokens", "INTEGER DEFAULT 0"),
+            ("time_to_first_token_ms", "INTEGER"),
+            ("tool_error_count", "INTEGER DEFAULT 0"),
+            ("error_code", "TEXT"),
+        ):
             if col not in cols:
-                self.con.execute(f"ALTER TABLE turn_usage ADD COLUMN {col} TEXT")
+                self.con.execute(
+                    f"ALTER TABLE turn_usage ADD COLUMN {col} {ddl}")
 
     @staticmethod
     def _id(prefix: str) -> str:
@@ -121,18 +135,25 @@ class Telemetry:
     def turn_end(self, turn_id: str, status: str = "completed", **kw):
         self.con.execute(
             """UPDATE turn_usage SET status=?, completed_at=?, duration_ms=?,
-               input_tokens=?, output_tokens=?, tool_call_count=?, model_request_count=?,
-               model_retry_count=?, cancelled_by_user=?, context_exceeded=?,
+               input_tokens=?, output_tokens=?, reasoning_tokens=?,
+               cache_read_input_tokens=?, time_to_first_token_ms=?,
+               tool_call_count=?, tool_error_count=?,
+               model_request_count=?, model_retry_count=?,
+               cancelled_by_user=?, context_exceeded=?,
                retry_policy=?, context_strategy=?,
-               error_type=?, error_message=? WHERE turn_id=?""",
+               error_type=?, error_code=?, error_message=? WHERE turn_id=?""",
             (status, _now(), kw.get("duration_ms", 0),
              kw.get("input_tokens", 0), kw.get("output_tokens", 0),
-             kw.get("tool_call_count", 0), kw.get("model_request_count", 0),
+             kw.get("reasoning_tokens", 0), kw.get("cache_read_input_tokens", 0),
+             kw.get("time_to_first_token_ms"),
+             kw.get("tool_call_count", 0), kw.get("tool_error_count", 0),
+             kw.get("model_request_count", 0),
              kw.get("model_retry_count", 0),
              1 if kw.get("cancelled_by_user") else 0,
              1 if kw.get("context_exceeded") else 0,
              kw.get("retry_policy"), kw.get("context_strategy"),
-             kw.get("error_type"), kw.get("error_message"), turn_id))
+             kw.get("error_type"), kw.get("error_code"),
+             kw.get("error_message"), turn_id))
         self.con.commit()
 
     # ---- model request（每次尝试一行，成功失败都记）----

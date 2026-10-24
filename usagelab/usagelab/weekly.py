@@ -86,7 +86,12 @@ def weekly_signal_counts(con: sqlite3.Connection, since=None, until=None) -> dic
 def dashboard(con: sqlite3.Connection, since=None, until=None) -> dict:
     """训练验收仪表盘：逐周指标 + P90 达标判定 + 环比变化。"""
     weeks = weekly_turns(con, since, until)
-    sig = weekly_signal_counts(con, since, until)
+    # 信号统计依赖 message 表；数据源没有会话消息层时（如 HarnessLab
+    # 自采实验库只存遥测不存对话）自动降级为空，仪表盘其余指标照常
+    try:
+        sig = weekly_signal_counts(con, since, until)
+    except sqlite3.Error:
+        sig = {}
     plan_start_key = week_key(int(datetime.strptime(
         PLAN_START, "%Y-%m-%d").replace(tzinfo=LOCAL_TZ).timestamp() * 1000))
 

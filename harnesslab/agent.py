@@ -50,8 +50,8 @@ class Agent:
         turn_id = self.tel.turn_start(session_id)
         ctx = Context(SYSTEM_PROMPT, strategy=self.default_strategy)
         ctx.add({"role": "user", "content": task})
-        stats = dict(tool_calls=0, model_requests=0, model_retries=0,
-                     in_tok=0, out_tok=0)
+        stats = dict(tool_calls=0, tool_errors=0, model_requests=0, model_retries=0,
+                     in_tok=0, out_tok=0, reason_tok=0, cache_tok=0)
         status, err_type, err_msg, final_text = "completed", None, None, ""
         try:
             for _step in range(self.max_steps):
@@ -76,7 +76,10 @@ class Agent:
         self.tel.turn_end(
             turn_id, status, duration_ms=duration,
             input_tokens=stats["in_tok"], output_tokens=stats["out_tok"],
+            reasoning_tokens=stats["reason_tok"],
+            cache_read_input_tokens=stats["cache_tok"],
             tool_call_count=stats["tool_calls"],
+            tool_error_count=stats["tool_errors"],
             model_request_count=stats["model_requests"],
             model_retry_count=stats["model_retries"],
             context_exceeded=bool(stats.get("context_exceeded")),
@@ -101,6 +104,8 @@ class Agent:
                 stats["model_requests"] += 1
                 stats["in_tok"] += resp.input_tokens
                 stats["out_tok"] += resp.output_tokens
+                stats["reason_tok"] += resp.reasoning_tokens
+                stats["cache_tok"] += resp.cache_read_input_tokens
                 self.tel.model_request(
                     session_id, turn_id, self.provider.name,
                     self.provider.model_name, "completed", t0, dur,
@@ -146,6 +151,8 @@ class Agent:
         else:
             content = f"工具执行失败: {result.error}"
             status = "error"
+        if status == "error":
+            stats["tool_errors"] += 1
         self.tel.tool_call(turn_id, call.name, status, t0, _now() - t0,
                            error_message=None if status == "completed" else content[:200])
         return content

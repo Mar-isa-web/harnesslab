@@ -29,6 +29,8 @@ class ModelResponse:
     tool_calls: list = field(default_factory=list)  # list[ToolCallRequest]
     input_tokens: int = 0
     output_tokens: int = 0
+    reasoning_tokens: int = 0        # 推理型模型（deepseek-reasoner 等）的思考 token
+    cache_read_input_tokens: int = 0  # 服务端缓存命中（deepseek: prompt_cache_hit_tokens）
     finish_reason: str = "stop"  # stop / tool-calls
     raw: dict = field(default_factory=dict)
 
@@ -135,5 +137,7 @@ class OpenAICompatProvider(BaseProvider):
             tool_calls=calls,
             input_tokens=usage.get("prompt_tokens", 0),
             output_tokens=usage.get("completion_tokens", 0),
+            reasoning_tokens=usage.get("reasoning_tokens", 0) or 0,
+            cache_read_input_tokens=usage.get("prompt_cache_hit_tokens", 0) or 0,
             finish_reason="tool-calls" if calls else "stop",
             raw=data)
