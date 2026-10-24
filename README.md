@@ -1,5 +1,7 @@
 # UsageLab
 
+[![CI](https://github.com/Mar-isa-web/usagelab/actions/workflows/ci.yml/badge.svg)](https://github.com/Mar-isa-web/usagelab/actions/workflows/ci.yml)
+
 > AI 协作使用观测系统：把「我怎么用 AI」变成可度量的指标。
 > 数据源是 ZCode CLI 的本地遥测库（**只读**），零 API 成本，全程离线。
 

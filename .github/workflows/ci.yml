@@ -1,0 +1,19 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 语法编译检查
+        run: python -m compileall -q usagelab tests cli.py
+      - name: 合成库断言测试（46 项，不依赖本机 ZCode 数据）
+        run: python tests/test_all.py
