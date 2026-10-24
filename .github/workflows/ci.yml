@@ -17,5 +17,7 @@ jobs:
         run: python tests/test_loop.py
       - name: 离线冒烟（mock provider 跑一个演示任务）
         run: python cli.py --provider mock "演示任务" --mode yolo
+      - name: 基准判分器自检（10 项任务反向验证，判分器坏了 CI 抓得住）
+        run: python benchmark.py --self-test
       - name: 观测面板合成库断言测试（46 项）
         run: python usagelab/tests/test_all.py

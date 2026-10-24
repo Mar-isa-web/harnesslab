@@ -1,15 +1,19 @@
-# UsageLab
+# UsageLab（HarnessLab 观测面板子系统）
 
-[![CI](https://github.com/Mar-isa-web/usagelab/actions/workflows/ci.yml/badge.svg)](https://github.com/Mar-isa-web/usagelab/actions/workflows/ci.yml)
+[![CI](https://github.com/Mar-isa-web/harnesslab/actions/workflows/ci.yml/badge.svg)](https://github.com/Mar-isa-web/harnesslab/actions/workflows/ci.yml)
 
+> 本目录是 [HarnessLab](../README.md) 的观测面板子系统（2026-10-24 由独立仓库并入）。
 > AI 协作使用观测系统：把「我怎么用 AI」变成可度量的指标。
-> 数据源是 ZCode CLI 的本地遥测库（**只读**），零 API 成本，全程离线。
+> 数据源是 ZCode CLI 的本地遥测库（**只读**），零 API 成本，全程离线；
+> 也能直读本仓库运行时产出的实验库（见 [../docs/panel-demo.md](../docs/panel-demo.md)）。
 
 一次命令，产出：等待分位 / 模型画像（限流率·TTFT·耗时）/ 工具画像 /
 不满信号挖掘 / 会话卫生 / **周度训练验收仪表盘**（P90 < 3 分钟目标线），
 渲染成 markdown + 自包含 HTML（图表内嵌），并存指标快照供周间对比。
 
 ```
+# 以下命令在本目录（usagelab/）内执行；在仓库根则把 cli.py 写成 usagelab/cli.py
+
 # 全量报告（md + html + 图表 + 快照）
 python cli.py report
 
@@ -27,7 +31,7 @@ python cli.py report --since 2026-10-12
 测试（合成库，数字全部已知可硬断言，不碰真实数据）：
 
 ```
-python tests/test_all.py   # 40 项全绿
+python tests/test_all.py   # 46 项全绿
 ```
 
 ## 它回答什么问题
@@ -57,14 +61,14 @@ usagelab/
 │   └── report_html.py      # 自包含 HTML（图表 base64 内嵌）
 ├── tests/
 │   ├── build_fixture.py    # 合成遥测库构造器（schema 与真库同构）
-│   └── test_all.py         # 40 项断言测试
+│   └── test_all.py         # 46 项断言测试
 ├── reports/                # 报告输出（gitignore）
 └── history/                # 每次运行的指标快照（gitignore）
 ```
 
 ## 路线图
 
-- **M0 ✅ 数据管道与指标**：只读装载 + 全指标 + 40 项合成库测试
+- **M0 ✅ 数据管道与指标**：只读装载 + 全指标 + 46 项合成库测试
 - **M1 ✅ 周度训练验收**：P90<3min 目标线 + 环比 + 信号趋势 + 快照存档
 - **M2 ✅ 报告双格式**：markdown + 自包含 HTML（matplotlib 图表可选，缺失自动降级）
 - **M3 ✅ 模型画像**：model_usage 逐请求统计——用自己的数据回答 Flash vs 5.3

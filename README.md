@@ -44,7 +44,7 @@ python usagelab/cli.py report          # 全量报告（md + HTML + 快照）
 python usagelab/cli.py weekly          # 周度训练验收仪表盘（P90 < 3min 目标线）
 python usagelab/cli.py diff            # 周间快照对比（🟢变好 / 🔴变差）
 
-# 分析本项目的实验库（招牌闭环）
+# 分析本项目的实验库（招牌闭环；bench.db 由上面 benchmark.py 的真实跑生成，不入库）
 python usagelab/cli.py --db data/bench.db report
 
 # 面板测试（46 项断言，合成库，不碰真实数据）
